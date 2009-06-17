@@ -1,0 +1,31 @@
+Cony - a HTTP based service for providing insight into running RabbitMQ processes
+
+Author: Gavin M. Roy <gmr@myyearbook.com>
+License: New BSD License
+
+Requirements:
+
+ - Python 2.6
+ - py_interface
+ - pyyaml
+ 
+Installation:
+
+Install py_interface and pyyaml, edit the cony.yaml file setting the information such 
+as the erlang cookie and rabbitmq node you'd like this daemon to provide data for.
+Currently it can only monitor one node per daemon, and as such it is intended to be run
+on the same machine as the rabbitmq node you are monitoring
+
+Web UI:
+
+Access to the real-time monitoring web ui is done by browsing to the default page.
+Example: http://rabbitmqnode:8080
+
+Raw Data Access:
+
+Data is returned in JSON format and accessed via HTTP Get.
+
+Current commands:
+
+/stats - Returns all stats gathered for a node
+/stats/list_queues - Returns all queue stats
