@@ -8,6 +8,7 @@ A python command line daemon for exposing internal RabbitMQ data via a simple JS
 
 import json
 import logging
+import mimetypes
 import optparse
 import os
 import sys
@@ -40,7 +41,6 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def send_data(self, response, mimetype):
         global version
         
-        logging.debug('Sending response to request for: %s' % self.path)
         self.send_response(200)
         self.send_header('X-Server', 'Cony/%s' % version)
         self.send_header('Content-type', mimetype)
@@ -51,9 +51,11 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global config, mbox
 
-        path = self.path.split('?')
         logging.debug('Received request for %s' % self.path)
 
+        # Get rid of the request paramters
+        path = self.path.split('?')
+       
         # Initial request for the stats ui
         if path[0] == '/':
             if os.path.isdir('assets'):
@@ -87,9 +89,13 @@ class HTTPHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(404)
             return                            
-
+        
+        # We did not satisfy the request for a static file so split up the URI  
+        path = path[0].split('/')
+        path.pop(0)
+  
         # 3rd party stub for json data
-        elif path[0] == '/stats':
+        if path[0] == 'stats':
         
           # All Stats
           if len(path) == 1:
@@ -101,16 +107,39 @@ class HTTPHandler(BaseHTTPRequestHandler):
           else:
           
             # List Queues
-            if path[1] == '/list_queues':
+            if path[1] == 'list_queues':
               stats = self.list_queues()
             
           self.send_data(json.dumps(stats), 'application/json')
+          return
+            
+        # Cony stub for jsonp data
+        elif path[0] == 'jsonpStats':
+        
+          # All Stats
+          if len(path) == 1:
+            
+            stats = {}
+            functionName = 'allStats'
+            stats['list_queues'] = self.list_queues()
+
+          # Individual Stats
+          else:
+          
+            # List Queues
+            if path[1] == 'list_queues':
+              functionName = 'listQueues'
+              stats = self.list_queues()
+            
+          self.send_data( functionName + "(" + json.dumps(stats) + ");\n", 
+                          "text/javascript")
+          return
             
         # The running processes configuration
-        elif path[0] == '/config':
+        elif path[0] == 'config':
             global config
 
-            response = "jsonp_config(%s);\n" % json.dumps(config)
+            response = "jsonpConfig(%s);\n" % json.dumps(config)
             self.send_data(response, 'text/javascript')
             return       
 
@@ -135,10 +164,19 @@ class HTTPHandler(BaseHTTPRequestHandler):
             [ ErlBinary(config['RabbitMQ']['VHost']) ],
             __msg_handler
         )
+        
+        logging.debug('Going into erl_eventhandler.GetEventHandler.Loop()');
         erl_eventhandler.GetEventHandler().Loop()
     
         #Wait for the process to finish
+        startTime = time.time();
+        logging.debug('Timeout set to %i, Start Time: %d' % ( int(config['HTTPServer']['Timeout']), startTime ))
         while process_stack[process_id] == 'running':
+            if ( ( time.time() - startTime ) > int(config['HTTPServer']['Timeout']) ):
+                logging.debug('Sending timeout.');
+                self.send_error(408, 'Request Timeout')
+                return
+              
             time.sleep(1)
       
         # Get our stats and remove the dictionary variable
