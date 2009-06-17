@@ -187,7 +187,7 @@ function listQueues(data)
     queues.memory[index].data.push([getTime(), attributes.memory]);
     if ( queues.memory[index].data.length > max_datapoints )
     {
-      queues.memory[index].data[dl].shift();
+      queues.memory[index].data.shift();
     }   
     totalMemory += attributes.memory;
     
@@ -211,7 +211,7 @@ function listQueues(data)
     queues.messages[index].data.push([getTime(), attributes.messages]);
     if ( queues.messages[index].data.length > max_datapoints )
     {
-      queues.messages[index].data[dl].shift();
+      queues.messages[index].data.shift();
     }   
 
     // Transactions
@@ -234,7 +234,7 @@ function listQueues(data)
     queues.transactions[index].data.push([getTime(), attributes.transactions]);
     if ( queues.transactions[index].data.length > max_datapoints )
     {
-      queues.transactions[index].data[dl].shift();
+      queues.transactions[index].data.shift();
     }   
     
   });
