@@ -6,7 +6,10 @@ Cony.py
 A python command line daemon for exposing internal RabbitMQ data via a simple JSON HTTP service.
 """
 
-import json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import logging
 import mimetypes
 import optparse
